@@ -1,69 +1,99 @@
 import {
   GET_DATA,
   GET_DATA_SUCCESSFUL,
-  GET_DATA_FAILED,
-
+  GET_DATA_FROM_API_SUCCESSFUL,
   SET_DATA,
   SET_DATA_SUCCESSFUL,
-  SET_DATA_FAILED,
-
   REMOVE_DATA,
-  REMOVE_DATA_SUCCESSFUL,
-  REMOVE_DATA_FAILED
+  REMOVE_DATA_SUCCESSFUL
 } from '../constants/actionTypes';
-import client from '../utils/client';
+import { DATA_PREFIX } from '../constants/state';
+import { selectPropByPath, runDispatchAndExpect } from '../utils/helpers';
+import { get as getFromApi } from './api';
 
-/**
- * Check if uid is invalid. If invalid, returns message why, otherwise returns
- * 	false
- * @param  {String} uid
- * @return {Boolean}
- */
-function isInvalid(uid) {
-  if (typeof uid !== 'undefined' && uid === '') {
-    return 'Invalid UID: Empty string is not a valid UID';
-  }
-}
-
-function formatAndRun({ uid, endpoint: dataEndpoint, token, method, body }) {
-  const endpoint = `${dataEndpoint}/${uid}`,
-        invalid = isInvalid(uid),
-        args = [ endpoint ];
-
-  if (invalid) {
-    return Promise.reject(new Error(invalid));
-  }
-
-  return client[method](endpoint, {
-    body,
-    token
-  });
-}
-
-function generateRequestActions(types) {
-  return [
-    (uid, data) => ({ type: types[0], uid, data }),
-    (uid, response) => ({ type: types[1], uid, response }),
-    (uid, error) => ({ type: types[2], uid, error })
-  ];
-}
-
-function generateHandler(method, types) {
-  let [ start, success, fail ] = generateRequestActions(types);
-
-  return (uid, body) => (dispatch, getState) => {
-    let { options, token } = getState(),
-        endpoint = options.dataEndpoint;
-
-    dispatch(start(uid, body));
-    return formatAndRun({ method, uid, body, endpoint, token })
-      .then(
-        response => dispatch(success(uid, response)),
-        error => dispatch(fail(uid, error))
-      );
+export function getData(uid) {
+  return {
+    type: GET_DATA,
+    uid
   };
 }
 
-export const get = generateHandler('get', [ GET_DATA, GET_DATA_SUCCESSFUL, GET_DATA_FAILED ]);
-export const set = generateHandler('put', [ SET_DATA, SET_DATA_SUCCESSFUL, SET_DATA_FAILED ]);
-export const remove = generateHandler('delete', [ REMOVE_DATA, REMOVE_DATA_SUCCESSFUL, REMOVE_DATA_FAILED ]);
+export function getDataSuccessful(uid, response) {
+  return {
+    type: GET_DATA_SUCCESSFUL,
+    response,
+    uid
+  }
+}
+
+export function setData(uid, data) {
+  return {
+    type: SET_DATA,
+    uid,
+    data
+  };
+}
+
+export function setDataSuccessful(uid, response) {
+  return {
+    type: SET_DATA_SUCCESSFUL,
+    response,
+    uid
+  };
+}
+
+export function removeData(uid) {
+  return {
+    type: REMOVE_DATA,
+    uid
+  };
+}
+
+export function removeDataSuccessful(uid) {
+  return {
+    type: REMOVE_DATA_SUCCESSFUL,
+    uid
+  };
+}
+
+export function get(uid) {
+  return (dispatch, getState) => {
+    let state,
+        stored,
+        fetchData;
+
+    dispatch(getData(uid));
+
+    state = getState();
+    stored = selectPropByPath(`${DATA_PREFIX}.${uid}`, state);
+
+
+    if (typeof stored === 'undefined') {
+      fetchData = runDispatchAndExpect(dispatch, getFromApi(uid), GET_DATA_FROM_API_SUCCESSFUL)
+        .then((response) => runDispatchAndExpect(dispatch, set(uid, response), SET_DATA_SUCCESSFUL));
+    } else {
+      fetchData = Promise.resolve(stored);
+    }
+
+    return fetchData
+      .then((response) => dispatch(getDataSuccessful(uid, response)));
+  };
+}
+
+export function set(uid, data) {
+  return (dispatch, getState) => {
+    dispatch(setData(uid, data));
+
+    return Promise.resolve()
+      .then(() => dispatch(setDataSuccessful(uid, data)));
+  };
+}
+
+export function remove(uid, data) {
+  return (dispatch, getState) => {
+    dispatch(removeData(uid));
+
+    return Promise.resolve()
+      .then(() => dispatch(removeDataSuccessful(uid)));
+  };
+}

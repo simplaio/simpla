@@ -2,6 +2,10 @@ export function selectPropByPath(path, obj) {
   let selector,
       numberSelector;
 
+  if (typeof obj === 'undefined') {
+    return obj;
+  }
+
   if (typeof path === 'string') {
     return selectPropByPath(path.split('.'), obj);
   }
@@ -55,11 +59,24 @@ export function ensureActionMatches(expectedType) {
   }
 }
 
-export function dispatchThunkAndExpect(store, action, expectedType) {
-  return store.dispatch(action)
+export function dispatchThunkAndExpect(store, ...args) {
+  return runDispatchAndExpect(store.dispatch, ...args);
+}
+
+export function runDispatchAndExpect(dispatch, action, expectedType) {
+  return dispatch(action)
     .then(ensureActionMatches(expectedType))
     .then(
       action => action.response,
       action => Promise.reject(action.response)
     );
+}
+
+/**
+ * Clone's the given object using JSON.parse(JSON.stringify(...));
+ * @param  {Object} object Object should be JSON compatible
+ * @return {Object}        Clone of given object
+ */
+export function clone(object) {
+  return JSON.parse(JSON.stringify(object));
 }

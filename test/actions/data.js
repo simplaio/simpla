@@ -1,104 +1,86 @@
-import { get, set, remove } from '../../src/actions/data';
-import thunk from 'redux-thunk';
+import * as dataActions from '../../src/actions/data';
+import * as apiActions from '../../src/actions/api';
 import * as types from '../../src/constants/actionTypes';
-import fetchMock from 'fetch-mock';
+import thunk from 'redux-thunk';
 import configureMockStore from '../__utils__/redux-mock-store';
+import fetchMock from 'fetch-mock';
 
 const mockStore = configureMockStore([ thunk ]);
-const TOKEN = 'some-token';
+
+const UID_FOR_STORED = 'foo.bar';
+const STORED_AT_UID = 'baz';
+
 const SERVER = 'some-server';
-const UID = 'some.uid.to.something';
+const UID_FOR_NOT_STORED = 'some.uid.to.something';
 const RESPONSE = { foo: 'bar' };
 
 fetchMock
-  .mock(`${SERVER}/${UID}`, 'GET', RESPONSE)
-  .mock(`${SERVER}/${UID}`, 'PUT', RESPONSE)
-  .mock(`${SERVER}/${UID}`, 'DELETE', {});
+  .mock(`${SERVER}/${UID_FOR_NOT_STORED}`, 'GET', RESPONSE)
+  .mock(`${SERVER}/${UID_FOR_NOT_STORED}`, 'PUT', RESPONSE)
+  .mock(`${SERVER}/${UID_FOR_NOT_STORED}`, 'DELETE', {});
 
-describe('data crud', () => {
+describe('data actions', () => {
   describe('get', () => {
-    it('should GET the correct endpoint and dispatch get action', () => {
-      let store = mockStore({
-            options: {
-              dataEndpoint: SERVER
-            }
-          }),
-          expectedActions = [{
-            type: types.GET_DATA,
-            uid: UID,
-            data: undefined
-          }, {
-            type: types.GET_DATA_SUCCESSFUL,
-            uid: UID,
-            response: RESPONSE
-          }];
+    const data = { foo: { bar: STORED_AT_UID } };
 
-      return store.dispatch(get(UID))
+    it('should get value in the state', () => {
+      let store = mockStore({ data });
+
+      return store.dispatch(dataActions.get(UID_FOR_STORED))
         .then(() => {
-          expect(store.getActions()).to.deep.equal(expectedActions)
+          expect(store.getActions()).to.deep.equal([
+            dataActions.getData(UID_FOR_STORED),
+            dataActions.getDataSuccessful(UID_FOR_STORED, STORED_AT_UID)
+          ]);
+        });
+    });
+
+    it('should get values from API if no value is in state', () => {
+      let store = mockStore({
+        options: {
+          dataEndpoint: SERVER
+        },
+        data
+      });
+
+      return store.dispatch(dataActions.get(UID_FOR_NOT_STORED))
+        .then(() => {
+          expect(store.getActions()).to.deep.include.members([
+            dataActions.getData(UID_FOR_NOT_STORED),
+            apiActions.getData(UID_FOR_NOT_STORED),
+            apiActions.getDataSuccessful(UID_FOR_NOT_STORED, RESPONSE),
+            dataActions.setData(UID_FOR_NOT_STORED, RESPONSE),
+            dataActions.setDataSuccessful(UID_FOR_NOT_STORED, RESPONSE),
+            dataActions.getDataSuccessful(UID_FOR_NOT_STORED, RESPONSE)
+          ]);
         });
     });
   });
 
   describe('set', () => {
-    const DATA = { bar: 'baz' };
+    it('should fire off set and set successful', () => {
+      let store = mockStore({});
 
-    it('should PUT to the correct endpoint and dispatch set actions', () => {
-      let store = mockStore({
-            options: {
-              dataEndpoint: SERVER
-            },
-            token: TOKEN
-          }),
-          expectedActions = [{
-            type: types.SET_DATA,
-            uid: UID,
-            data: DATA
-          }, {
-            type: types.SET_DATA_SUCCESSFUL,
-            uid: UID,
-            response: RESPONSE
-          }];
-
-      return store.dispatch(set(UID, DATA))
+      return store.dispatch(dataActions.set(UID_FOR_STORED, STORED_AT_UID))
         .then(() => {
-          let lastOptions = fetchMock.lastOptions(`${SERVER}/${UID}`),
-              body = JSON.parse(lastOptions.body),
-              { headers, method } = lastOptions;
-
-          expect(store.getActions()).to.deep.equal(expectedActions)
-          expect(body).to.deep.equal(DATA);
-          expect(method).to.equal('PUT');
-          expect(headers['Authorization'].split(' ')[1]).to.equal(TOKEN);
+          expect(store.getActions()).to.deep.equal([
+            dataActions.setData(UID_FOR_STORED, STORED_AT_UID),
+            dataActions.setDataSuccessful(UID_FOR_STORED, STORED_AT_UID)
+          ]);
         });
     });
   });
 
   describe('remove', () => {
-    it('should DELETE the right endpoint', () => {
-      let store = mockStore({
-            options: {
-              dataEndpoint: SERVER
-            },
-            token: TOKEN
-          }),
-          expectedActions = [{
-            type: types.REMOVE_DATA,
-            uid: UID,
-            data: undefined
-          }, {
-            type: types.REMOVE_DATA_SUCCESSFUL,
-            uid: UID,
-            response: {}
-          }];
+    it('should fire off remove and remove successful', () => {
+      let store = mockStore({});
 
-      return store.dispatch(remove(UID))
+      return store.dispatch(dataActions.remove(UID_FOR_STORED))
         .then(() => {
-          let { method, headers } = fetchMock.lastOptions(`${SERVER}/${UID}`);
-
-          expect(store.getActions()).to.deep.equal(expectedActions)
-          expect(method).to.equal('DELETE');
-          expect(headers['Authorization'].split(' ')[1]).to.equal(TOKEN);
+          expect(store.getActions()).to.deep.equal([
+            dataActions.removeData(UID_FOR_STORED),
+            dataActions.removeDataSuccessful(UID_FOR_STORED)
+          ]);
         });
     });
   });

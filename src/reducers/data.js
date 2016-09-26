@@ -1,22 +1,21 @@
+import { SET_DATA, REMOVE_DATA } from '../constants/actionTypes';
+import { clone } from '../utils/helpers';
+
 const INITIAL_STATE = {};
 
-// // TODO: Reimplement the below
-// export function dataEntity(state = {}, action) {
-//   switch (action.type) {
-//   case REQUEST_DATA:
-//     return Object.assign({}, state, { requesting: true, error: null });
-//   case REQUEST_DATA_FAILED:
-//     return Object.assign({}, state, { requesting: false, error: action.error.message });
-//   case RECEIVE_DATA:
-//     return Object.assign({}, state, { requesting: false, error: null, data: action.data });
-//   default:
-//     return state;
-//   }
-// }
+function setIn(state, path, data) {
+  let key = path[0],
+      value = path.length === 1 ? clone(data) : setIn(state[key] || {}, path.slice(1), data);
+
+  return Object.assign({}, state, { [key]: value });
+}
 
 export default function data(state = INITIAL_STATE, action) {
   switch (action.type) {
-  // TODO: Handle data actions
+  case SET_DATA:
+    return setIn(state, action.uid.split('.'), action.data);
+  case REMOVE_DATA:
+    return setIn(state, action.uid.split('.'), null);
   default:
     return state;
   }
