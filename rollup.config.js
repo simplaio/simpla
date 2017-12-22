@@ -37,4 +37,12 @@ export default [{
     name: 'SimplaNetlify'
   },
   plugins
+}, {
+  input: 'src/adapters/firebase.js',
+  output: {
+    file: './adapters/firebase.js',
+    format: 'umd',
+    name: 'SimplaFirebase'
+  },
+  plugins
 }];
