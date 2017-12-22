@@ -8,10 +8,10 @@ export default class FirebaseAuth{
     provider.addScope('repo');
     provider.addScope('administration');
     return this.firebase.auth().signInWithPopup(provider).then(function(result) {
-        var token = result.credential.accessToken;
-        return {token};
+      var token = result.credential.accessToken;
+      return {token};
     }).catch(function(error) {
-        return false;
+      return {error};
     });
   }
 }
