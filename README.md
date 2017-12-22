@@ -30,3 +30,5 @@ The client should now load firebase too.
  </script>```
  
  The config part is provided by Firebase. Thats it!
+ 
+ Note that a single firebase project can be used to authenticate multiple domains. You just have to configure that in firebase console admin.
