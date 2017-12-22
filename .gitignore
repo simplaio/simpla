@@ -2,7 +2,7 @@
 node_modules
 
 # Built files
-adapters
+/adapters
 simpla.min.js
 
 # Runtime
