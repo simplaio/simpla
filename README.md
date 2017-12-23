@@ -117,3 +117,37 @@ Read the [Contributing guidelines](/CONTRIBUTING.md) for more information.
 ***
 
 [MIT](/LICENSE) © 2017
+
+If you want to use firebase follow these steps:
+
+1. Go to firebase console and enable github authentication in Authentication section. Its well documented.
+2. Create a git repository as usual(refer Simpla documentation).
+
+The client should now load firebase too. 
+
+```<script src="https://www.gstatic.com/firebasejs/4.8.1/firebase.js"></script>
+<script>
+      var config = {
+        apiKey: "api-key",
+        authDomain: "your valu",
+        databaseURL: "xxxxx",
+        projectId: "xxxxxxxx",
+        storageBucket: "xxxxxxx",
+        messagingSenderId: "xxxxxxxxxxx"
+      };
+      firebase.initializeApp(config);
+
+      Simpla.init({
+
+        // The Github repo you want Simpla to use
+        repo: 'username/repo',
+
+        // Firebase auth adapter, initialize with your Netlify site name
+         auth: new SimplaFirebase(firebase)
+
+      })
+ </script>```
+ 
+ The config part is provided by Firebase. Thats it!
+ 
+ Note that a single firebase project can be used to authenticate multiple domains. You just have to configure that in firebase console admin.
